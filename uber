@@ -1,0 +1,53 @@
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import r2_score, mean_squared_error
+
+# 1. Load data
+df = pd.read_csv("uber.csv")
+print("Initial data preview:")
+print(df.head())
+
+# 2. Preprocess
+df = df.dropna()
+df = df[df['fare_amount'] > 0]
+
+# 3. Remove outliers
+df = df[df['fare_amount'] < 100]
+
+# 4. Correlation heatmap (numeric columns only)
+numeric_df = df.select_dtypes(include=[np.number])
+plt.figure(figsize=(8, 5))
+sns.heatmap(numeric_df.corr(), annot=True, cmap='coolwarm')
+plt.title("Correlation Heatmap (Numeric Features Only)")
+plt.show()
+
+# 5. Feature Selection
+X = df[['passenger_count', 'pickup_longitude', 'pickup_latitude', 
+        'dropoff_longitude', 'dropoff_latitude']]
+y = df['fare_amount']
+
+# 6. Train-Test Split
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# 7. Models
+lr = LinearRegression()
+rf = RandomForestRegressor(random_state=42, n_estimators=100)
+
+lr.fit(X_train, y_train)
+rf.fit(X_train, y_train)
+
+# 8. Evaluation
+for model, name in zip([lr, rf], ['Linear Regression', 'Random Forest']):
+    y_pred = model.predict(X_test)
+    r2 = r2_score(y_test, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    print(f"\n{name} Performance:")
+    print(f"R² Score: {r2:.4f}")
+    print(f"RMSE: {rmse:.2f}")
