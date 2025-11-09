@@ -1,0 +1,82 @@
+# BANK CUSTOMER CHURN PREDICTION USING NEURAL NETWORK
+# Dataset: https://www.kaggle.com/barelydedicated/bank-customer-churn-modeling
+
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout
+
+# 1. Read the dataset
+df = pd.read_csv("Churn_Modelling.csv")  # Change path if needed
+print("Dataset preview:")
+print(df.head())
+
+# Drop irrelevant columns
+df = df.drop(['RowNumber', 'CustomerId', 'Surname'], axis=1)
+
+# 2. Distinguish features and target
+X = df.drop('Exited', axis=1)   # Features
+y = df['Exited']                # Target
+
+# Encode categorical variables (Geography, Gender)
+label_encoder = LabelEncoder()
+X['Gender'] = label_encoder.fit_transform(X['Gender'])  # Male=1, Female=0
+X = pd.get_dummies(X, columns=['Geography'], drop_first=True)  # One-hot encode
+
+# 3. Split into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# Normalize data
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# 4. Initialize and build the model
+model = Sequential()
+model.add(Dense(16, input_dim=X_train.shape[1], activation='relu'))
+model.add(Dropout(0.3))
+model.add(Dense(8, activation='relu'))
+model.add(Dropout(0.3))
+model.add(Dense(1, activation='sigmoid'))
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+# Train the model
+history = model.fit(X_train, y_train, epochs=50, batch_size=32, validation_split=0.2, verbose=0)
+
+# Plot accuracy
+plt.plot(history.history['accuracy'], label='Train Accuracy')
+plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+plt.legend()
+plt.title('Model Accuracy Over Epochs')
+plt.xlabel('Epochs')
+plt.ylabel('Accuracy')
+plt.show()
+
+# 5. Evaluate Model
+y_pred = (model.predict(X_test) > 0.5).astype("int32")
+
+# Print accuracy and confusion matrix
+acc = accuracy_score(y_test, y_pred)
+cm = confusion_matrix(y_test, y_pred)
+
+print("\n✅ Model Evaluation Results:")
+print(f"Accuracy: {acc:.4f}")
+print("\nConfusion Matrix:")
+print(cm)
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
+
+# Visualize confusion matrix
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+plt.title('Confusion Matrix')
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.show()
